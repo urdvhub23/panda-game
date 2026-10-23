@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bamboo Paws: Panda Feast</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for playful game typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bamboo-dark: #14532d;
+            --bamboo-mid: #16a34a;
+            --bamboo-light: #86efac;
+            --cream-bg: #f0fdf4;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: radial-gradient(circle at 50% 20%, #dcfce7 0%, #86efac 55%, #15803d 100%);
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Tactile 3D Arcade Buttons */
+        .btn-arcade {
+            transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 6px 0 #14532d, 0 10px 15px rgba(0, 0, 0, 0.18);
+            transform: translateY(0);
+        }
+
+        .btn-arcade:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 #14532d, 0 12px 20px rgba(0, 0, 0, 0.22);
+        }
+
+        .btn-arcade:active:not(:disabled), .btn-arcade.active-press {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #14532d, 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-amber {
+            box-shadow: 0 6px 0 #92400e, 0 10px 15px rgba(0, 0, 0, 0.18);
+        }
+
+        .btn-amber:hover:not(:disabled) {
+            box-shadow: 0 8px 0 #92400e, 0 12px 20px rgba(0, 0, 0, 0.22);
+        }
+
+        .btn-amber:active:not(:disabled), .btn-amber.active-press {
+            box-shadow: 0 2px 0 #92400e, 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Canvas Wrapper & Styling */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            max-height: 62vh;
+            background: linear-gradient(180deg, #a7f3d0 0%, #dcfce7 65%, #4ade80 100%);
+            border: 6px solid #14532d;
+            box-shadow: 0 18px 35px rgba(20, 83, 45, 0.35), inset 0 0 25px rgba(255, 255, 255, 0.5);
+            overflow: hidden;
+        }
+
+        @media (max-width: 640px) {
+            .canvas-container {
+                aspect-ratio: 3 / 3.6;
+                max-height: 56vh;
+            }
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        /* Floating Animation for Modal Card */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-7px); }
+        }
+
+        .animate-float {
+            animation: floatSlow 3.2s ease-in-out infinite;
+        }
+
+        /* Pulse Heart Animation */
+        @keyframes heartPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.28); }
+            100% { transform: scale(1); }
+        }
+
+        .heart-active {
+            animation: heartPop 0.35s ease-out;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-2 sm:p-4 min-h-screen text-emerald-950">
+
+    <!-- Main Game Container -->
+    <div class="w-full max-w-4xl flex flex-col items-center my-auto">
+
+        <!-- Header & Top Controls Row (Outside Canvas) -->
+        <header class="w-full flex flex-wrap items-center justify-between gap-2 mb-3 px-2">
+            <!-- Game Logo / Title -->
+            <div class="flex items-center gap-2.5">
+                <div class="w-11 h-11 rounded-2xl bg-white border-4 border-emerald-900 shadow-md flex items-center justify-center text-2xl">
+                    🐼
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-wide text-emerald-950 leading-none">
+                        BAMBOO PAWS
+                    </h1>
+                    <p class="text-xs font-bold text-emerald-800 tracking-wider uppercase">
+                        Panda Feast Arcade
+                    </p>
+                </div>
+            </div>
+
+            <!-- Stats Pill Bar -->
+            <div class="flex items-center gap-2 sm:gap-3 bg-white/90 backdrop-blur-sm border-4 border-emerald-900 rounded-2xl px-3 py-1.5 shadow-md">
+                <div class="text-center px-1.5">
+                    <span class="block text-[10px] font-extrabold uppercase text-emerald-700">Score</span>
+                    <span id="scoreDisplay" class="font-display text-lg sm:text-xl font-bold text-emerald-950">0</span>
+                </div>
+                <div class="h-7 w-0.5 bg-emerald-200 rounded-full"></div>
+                <div class="text-center px-1.5">
+                    <span class="block text-[10px] font-extrabold uppercase text-amber-600">Best</span>
+                    <span id="highScoreDisplay" class="font-display text-lg sm:text-xl font-bold text-amber-600">0</span>
+                </div>
+                <div class="h-7 w-0.5 bg-emerald-200 rounded-full"></div>
+                <div class="text-center px-1.5">
+                    <span class="block text-[10px] font-extrabold uppercase text-rose-600">Lives</span>
+                    <div id="livesContainer" class="flex items-center gap-0.5 text-base sm:text-lg leading-none py-0.5">
+                        <span>❤️</span><span>❤️</span><span>❤️</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Action Buttons (Outside Canvas) -->
+            <div class="flex items-center gap-2">
+                <button id="soundBtn" type="button" aria-label="Toggle Sound"
+                    class="btn-arcade bg-emerald-500 hover:bg-emerald-400 text-white font-display font-bold w-11 h-11 rounded-2xl border-2 border-emerald-950 flex items-center justify-center text-lg">
+                    <i id="soundIcon" class="fas fa-volume-up"></i>
+                </button>
+                <button id="pauseBtn" type="button" aria-label="Pause Game"
+                    class="btn-arcade bg-amber-400 hover:bg-amber-300 text-amber-950 btn-amber font-display font-bold px-3.5 h-11 rounded-2xl border-2 border-amber-950 flex items-center gap-1.5 text-sm sm:text-base">
+                    <i id="pauseIcon" class="fas fa-pause"></i>
+                    <span class="hidden sm:inline" id="pauseText">Pause</span>
+                </button>
+                <button id="restartTopBtn" type="button" aria-label="Restart Game"
+                    class="btn-arcade bg-white hover:bg-emerald-50 text-emerald-950 font-display font-bold w-11 h-11 rounded-2xl border-2 border-emerald-950 flex items-center justify-center text-lg"
+                    title="Restart Game">
+                    <i class="fas fa-rotate-right"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Game Canvas Container -->
+        <div class="canvas-container rounded-3xl">
+            <canvas id="gameCanvas"></canvas>
+
+            <!-- Live HUD Badge Inside Top of Canvas (Combo & Level & Dash Meter) -->
+            <div class="pointer-events-none absolute top-3 left-3 right-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div id="levelBadge" class="bg-emerald-900/85 text-emerald-100 font-display text-xs sm:text-sm px-3 py-1 rounded-xl border border-emerald-400/40 shadow">
+                        LVL 1
+                    </div>
+                    <div id="comboBadge" class="hidden bg-amber-400 text-amber-950 font-display font-bold text-xs sm:text-sm px-3 py-1 rounded-xl border-2 border-amber-900 shadow transform transition-transform">
+                        COMBO x2 🔥
+                    </div>
+                </div>
+
+                <!-- Dash Stamina Pill -->
+                <div class="bg-white/85 backdrop-blur-sm border-2 border-emerald-900 rounded-xl px-2.5 py-1 flex items-center gap-2 shadow">
+                    <span class="text-[11px] font-extrabold uppercase text-emerald-900">⚡ Dash</span>
+                    <div class="w-16 sm:w-20 h-2.5 bg-emerald-950/20 rounded-full overflow-hidden">
+                        <div id="dashBar" class="h-full bg-gradient-to-r from-amber-400 to-emerald-500 w-full transition-all duration-75"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start / Pause / Game Over Modal Overlay -->
+            <div id="overlayModal" class="absolute inset-0 bg-emerald-950/65 backdrop-blur-sm flex items-center justify-center p-4 z-20 transition-opacity duration-200">
+                <div class="animate-float bg-white border-4 border-emerald-900 rounded-3xl max-w-md w-full p-5 sm:p-6 text-center shadow-2xl">
+                    <!-- Panda Mascot SVG Badge -->
+                    <div class="mx-auto w-20 h-20 rounded-3xl bg-emerald-100 border-4 border-emerald-900 flex items-center justify-center mb-3 shadow-inner">
+                        <svg viewBox="0 0 100 100" class="w-16 h-16">
+                            <!-- Ears -->
+                            <circle cx="24" cy="24" r="14" fill="#1e293b"/>
+                            <circle cx="76" cy="24" r="14" fill="#1e293b"/>
+                            <!-- Head -->
+                            <ellipse cx="50" cy="54" rx="34" ry="30" fill="#ffffff" stroke="#1e293b" stroke-width="5"/>
+                            <!-- Blush -->
+                            <ellipse cx="28" cy="60" rx="6" ry="3.5" fill="#fda4af"/>
+                            <ellipse cx="72" cy="60" rx="6" ry="3.5" fill="#fda4af"/>
+                            <!-- Eye Patches -->
+                            <ellipse cx="35" cy="49" rx="10" ry="12" transform="rotate(-12 35 49)" fill="#1e293b"/>
+                            <ellipse cx="65" cy="49" rx="10" ry="12" transform="rotate(12 65 49)" fill="#1e293b"/>
+                            <!-- Eyes -->
+                            <circle cx="36" cy="47" r="3.5" fill="#ffffff"/>
+                            <circle cx="64" cy="47" r="3.5" fill="#ffffff"/>
+                            <!-- Nose & Smile -->
+                            <ellipse cx="50" cy="58" rx="6" ry="4" fill="#1e293b"/>
+                            <path d="M44 64 Q50 70 56 64" stroke="#1e293b" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+
+                    <h2 id="modalTitle" class="font-display text-2xl sm:text-3xl font-bold text-emerald-950 mb-1">
+                        Hungry Panda!
+                    </h2>
+                    <p id="modalSubtitle" class="text-sm text-emerald-800 font-semibold mb-4">
+                        Catch fresh bamboo shoots to build your combo! Dodge falling rocks and buzzing stinkbugs.
+                    </p>
+
+                    <!-- Final Score Box (Hidden on initial screen) -->
+                    <div id="finalStatsBox" class="hidden bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-3 mb-4 grid grid-cols-3 gap-2">
+                        <div>
+                            <span class="block text-[10px] font-bold uppercase text-emerald-700">Score</span>
+                            <span id="finalScoreVal" class="font-display text-xl font-bold text-emerald-950">0</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] font-bold uppercase text-amber-700">Max Combo</span>
+                            <span id="finalComboVal" class="font-display text-xl font-bold text-amber-600">x1</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] font-bold uppercase text-emerald-700">Bamboo</span>
+                            <span id="finalCaughtVal" class="font-display text-xl font-bold text-emerald-950">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Item Legend -->
+                    <div class="bg-emerald-50/90 border-2 border-emerald-200 rounded-2xl p-3 mb-4 text-left grid grid-cols-2 gap-2 text-xs font-bold text-emerald-900">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🎋</span>
+                            <span>Bamboo <strong class="text-emerald-600">+10 pts</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">✨</span>
+                            <span>Golden <strong class="text-amber-600">+50 pts</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🥟</span>
+                            <span>Dumpling <strong class="text-rose-500">+1 Life</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🪨🐝</span>
+                            <span>Rock/Bug <strong class="text-red-600">-1 Life</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Difficulty Selector -->
+                    <div id="difficultySelector" class="flex items-center justify-center gap-2 mb-5">
+                        <button type="button" data-diff="chill" class="diff-btn px-3 py-1.5 rounded-xl font-display text-xs sm:text-sm border-2 border-emerald-900 bg-emerald-100 text-emerald-900">
+                            🌱 Chill
+                        </button>
+                        <button type="button" data-diff="normal" class="diff-btn px-3 py-1.5 rounded-xl font-display text-xs sm:text-sm border-2 border-emerald-900 bg-emerald-600 text-white shadow">
+                            🎋 Normal
+                        </button>
+                        <button type="button" data-diff="master" class="diff-btn px-3 py-1.5 rounded-xl font-display text-xs sm:text-sm border-2 border-emerald-900 bg-emerald-100 text-emerald-900">
+                            🔥 Master
+                        </button>
+                    </div>
+
+                    <!-- Primary Start / Resume Button -->
+                    <button id="primaryModalBtn" type="button"
+                        class="btn-arcade w-full bg-emerald-500 hover:bg-emerald-400 text-white font-display font-bold text-lg py-3 px-6 rounded-2xl border-2 border-emerald-950 flex items-center justify-center gap-2">
+                        <i class="fas fa-play"></i>
+                        <span id="primaryModalBtnText">START FEAST</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Control Deck (Placed Outside the Game Canvas as a Centered Row) -->
+        <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 px-2">
+            <!-- Arcade Control Buttons -->
+            <div class="flex items-center justify-center gap-3 w-full sm:w-auto">
+                <button id="btnLeft" type="button" aria-label="Move Left"
+                    class="btn-arcade flex-1 sm:flex-initial sm:w-28 bg-white hover:bg-emerald-50 active:bg-emerald-100 text-emerald-950 font-display font-bold py-3 px-5 rounded-2xl border-3 border-emerald-950 flex items-center justify-center gap-2 text-base">
+                    <i class="fas fa-arrow-left text-emerald-700"></i>
+                    <span>LEFT</span>
+                </button>
+
+                <button id="btnDash" type="button" aria-label="Panda Dash"
+                    class="btn-arcade btn-amber bg-amber-400 hover:bg-amber-300 text-amber-950 font-display font-bold py-3 px-5 rounded-2xl border-3 border-amber-950 flex items-center justify-center gap-1.5 text-base">
+                    <i class="fas fa-bolt"></i>
+                    <span>DASH</span>
+                </button>
+
+                <button id="btnRight" type="button" aria-label="Move Right"
+                    class="btn-arcade flex-1 sm:flex-initial sm:w-28 bg-white hover:bg-emerald-50 active:bg-emerald-100 text-emerald-950 font-display font-bold py-3 px-5 rounded-2xl border-3 border-emerald-950 flex items-center justify-center gap-2 text-base">
+                    <span>RIGHT</span>
+                    <i class="fas fa-arrow-right text-emerald-700"></i>
+                </button>
+            </div>
+
+            <!-- Controls Hint Pill -->
+            <div class="text-xs sm:text-sm font-bold text-emerald-950 bg-white/75 backdrop-blur-sm px-4 py-2 rounded-2xl border-2 border-emerald-800/30 text-center">
+                <span class="hidden md:inline">⌨️ <strong>A / D</strong> or <strong>◀ / ▶</strong> to Move • <strong>Space</strong> to Dash • 🖱️ Drag on Meadow</span>
+                <span class="md:hidden">👆 Drag Panda on screen or tap <strong>LEFT / DASH / RIGHT</strong></span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * BAMBOO PAWS: PANDA FEAST
+         * Complete Single-File HTML5 Canvas Game
+         */
+
+        // --- Procedural Web Audio Synthesizer (Zero External Assets Required) ---
+        class SoundController {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.ctx = new AudioCtx();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                return this.muted;
+            }
+
+            // Crisp crunch/chime when catching normal bamboo
+            playCatch(combo = 1) {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                // Pitch rises slightly with combo
+                const baseFreq = Math.min(440 + combo * 28, 880);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(baseFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.45, now + 0.11);
+
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.13);
+            }
+
+            // Sparkling arpeggio for Golden Bamboo or Dumpling
+            playBonus() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const notes = [523.25, 659.25, 783.99, 1046.5];
+                notes.forEach((freq, idx) => {
+                    const now = this.ctx.currentTime + idx * 0.055;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.16, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                });
+            }
+
+            // Low thud when hitting a rock or bug
+            playHit() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.exponentialRampToValueAtTime(48, now + 0.25);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.26);
+            }
+
+            // Quick swoosh for Panda Dash
+            playDash() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.exponentialRampToValueAtTime(620, now + 0.14);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+        }
+
+        // --- Game State & Configuration ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const sound = new SoundController();
+
+        // UI Elements
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        const livesContainer = document.getElementById('livesContainer');
+        const levelBadge = document.getElementById('levelBadge');
+        const comboBadge = document.getElementById('comboBadge');
+        const dashBar = document.getElementById('dashBar');
+        const overlayModal = document.getElementById('overlayModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSubtitle = document.getElementById('modalSubtitle');
+        const finalStatsBox = document.getElementById('finalStatsBox');
+        const finalScoreVal = document.getElementById('finalScoreVal');
+        const finalComboVal = document.getElementById('finalComboVal');
+        const finalCaughtVal = document.getElementById('finalCaughtVal');
+        const primaryModalBtn = document.getElementById('primaryModalBtn');
+        const primaryModalBtnText = document.getElementById('primaryModalBtnText');
+        const difficultySelector = document.getElementById('difficultySelector');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const pauseIcon = document.getElementById('pauseIcon');
+        const pauseText = document.getElementById('pauseText');
+        const soundBtn = document.getElementById('soundBtn');
+        const soundIcon = document.getElementById('soundIcon');
+        const restartTopBtn = document.getElementById('restartTopBtn');
+
+        // Difficulty Presets
+        const DIFFICULTIES = {
+            chill: { spawnInterval: 1050, speedMult: 0.82, obstacleRatio: 0.22, maxLives: 4 },
+            normal: { spawnInterval: 850, speedMult: 1.0, obstacleRatio: 0.30, maxLives: 3 },
+            master: { spawnInterval: 660, speedMult: 1.24, obstacleRatio: 0.38, maxLives: 3 }
+        };
+
+        let currentDifficulty = 'normal';
+        let highScore = 0;
+
+        try {
+            highScore = parseInt(localStorage.getItem('bambooPaws_highScore') || '0', 10);
+        } catch (e) {
+            highScore = 0;
+        }
+        highScoreDisplay.textContent = highScore;
+
+        // Logical coordinate system for crisp rendering
+        let viewWidth = 800;
+        let viewHeight = 600;
+
+        // Core Game State
+        const state = {
+            status: 'menu', // 'menu' | 'playing' | 'paused' | 'gameover'
+            score: 0,
+            bambooCaught: 0,
+            lives: 3,
+            maxLives: 3,
+            combo: 0,
+            maxCombo: 1,
+            level: 1,
+            lastSpawnTime: 0,
+            screenShake: 0,
+            time: 0
+        };
+
+        // Panda Player Object
+        const panda = {
+            x: 400,
+            y: 520,
+            width: 86,
+            height: 76,
+            vx: 0,
+            speed: 540,
+            targetX: null, // For mouse/touch smooth follow
+            facing: 1,
+            walkCycle: 0,
+            dashEnergy: 100,
+            dashTimer: 0,
+            happyTimer: 0,
+            hurtTimer: 0,
+            blinkTimer: 0
+        };
+
+        // Input Flags
+        const keys = {
+            left: false,
+            right: false
+        };
+
+        // Entities Arrays
+        let items = [];
+        let particles = [];
+        let floatingTexts = [];
+        let backgroundStalks = [];
+        let ambientLeaves = [];
+
+        // --- Responsive Canvas Sizing ---
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+            viewWidth = rect.width;
+            viewHeight = rect.height;
+
+            canvas.width = viewWidth * dpr;
+            canvas.height = viewHeight * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            // Keep panda grounded and within bounds
+            panda.y = viewHeight - 58;
+            panda.x = Math.max(panda.width / 2, Math.min(viewWidth - panda.width / 2, panda.x));
+
+            generateBackgroundScene();
+        }
+
+        // Generate Bamboo Forest Background Elements
+        function generateBackgroundScene() {
+            backgroundStalks = [];
+            const count = Math.max(8, Math.floor(viewWidth / 75));
+            for (let i = 0; i < count; i++) {
+                backgroundStalks.push({
+                    x: (i + 0.3 + Math.random() * 0.4) * (viewWidth / count),
+                    width: 12 + Math.random() * 14,
+                    layer: i % 2 === 0 ? 0 : 1, // 0 = far, 1 = mid
+                    swayOffset: Math.random() * Math.PI * 2,
+                    nodeHeight: 55 + Math.random() * 25
+                });
+            }
+
+            if (ambientLeaves.length === 0) {
+                for (let i = 0; i < 12; i++) {
+                    ambientLeaves.push({
+                        x: Math.random() * viewWidth,
+                        y: Math.random() * viewHeight,
+                        size: 5 + Math.random() * 6,
+                        vx: 15 + Math.random() * 20,
+                        vy: 18 + Math.random() * 22,
+                        angle: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+        }
+
+        // --- Game Initialization & Reset ---
+        function startGame() {
+            sound.init();
+            const cfg = DIFFICULTIES[currentDifficulty];
+
+            state.status = 'playing';
+            state.score = 0;
+            state.bambooCaught = 0;
+            state.maxLives = cfg.maxLives;
+            state.lives = cfg.maxLives;
+            state.combo = 0;
+            state.maxCombo = 1;
+            state.level = 1;
+            state.lastSpawnTime = performance.now();
+            state.screenShake = 0;
+
+            panda.x = viewWidth / 2;
+            panda.vx = 0;
+            panda.targetX = null;
+            panda.dashEnergy = 100;
+            panda.dashTimer = 0;
+            panda.happyTimer = 0;
+            panda.hurtTimer = 0;
+
+            items = [];
+            particles = [];
+            floatingTexts = [];
+
+            updateHUD();
+            overlayModal.classList.add('opacity-0', 'pointer-events-none');
+            pauseIcon.className = 'fas fa-pause';
+            if (pauseText) pauseText.textContent = 'Pause';
+        }
+
+        function triggerDash() {
+            if (state.status !== 'playing') return;
+            if (panda.dashEnergy >= 45 && panda.dashTimer <= 0) {
+                panda.dashEnergy -= 45;
+                panda.dashTimer = 0.22;
+                sound.playDash();
+
+                // Spawn dash dust puff particles
+                for (let i = 0; i < 10; i++) {
+                    particles.push({
+                        x: panda.x - panda.facing * 20,
+                        y: panda.y + 10 + (Math.random() - 0.5) * 20,
+                        vx: -panda.facing * (80 + Math.random() * 140),
+                        vy: -20 + (Math.random() - 0.5) * 60,
+                        radius: 4 + Math.random() * 5,
+                        color: '#fef08a',
+                        alpha: 1,
+                        life: 0.35
+                    });
+                }
+            }
+        }
+
+        function togglePause() {
+            if (state.status === 'playing') {
+                state.status = 'paused';
+                modalTitle.textContent = 'Game Paused';
+                modalSubtitle.textContent = 'Take a breather! Your bamboo basket is waiting.';
+                finalStatsBox.classList.add('hidden');
+                difficultySelector.classList.add('hidden');
+                primaryModalBtnText.textContent = 'RESUME FEAST';
+                overlayModal.classList.remove('opacity-0', 'pointer-events-none');
+                pauseIcon.className = 'fas fa-play';
+                if (pauseText) pauseText.textContent = 'Resume';
+            } else if (state.status === 'paused') {
+                state.status = 'playing';
+                state.lastSpawnTime = performance.now();
+                overlayModal.classList.add('opacity-0', 'pointer-events-none');
+                pauseIcon.className = 'fas fa-pause';
+                if (pauseText) pauseText.textContent = 'Pause';
+            }
+        }
+
+        function endGame() {
+            state.status = 'gameover';
+            if (state.score > highScore) {
+                highScore = state.score;
+                try {
+                    localStorage.setItem('bambooPaws_highScore', String(highScore));
+                } catch (e) {}
+            }
+            updateHUD();
+
+            modalTitle.textContent = 'Full Belly!';
+            modalSubtitle.textContent = state.score >= highScore && state.score > 0
+                ? '🎉 New High Score! You are the Ultimate Bamboo Master!'
+                : 'Great effort! Watch out for those sneaky rocks and bugs.';
+
+            finalScoreVal.textContent = state.score;
+            finalComboVal.textContent = 'x' + state.maxCombo;
+            finalCaughtVal.textContent = state.bambooCaught;
+
+            finalStatsBox.classList.remove('hidden');
+            difficultySelector.classList.remove('hidden');
+            primaryModalBtnText.textContent = 'PLAY AGAIN';
+            overlayModal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        // --- Update HUD DOM Elements ---
+        function updateHUD() {
+            scoreDisplay.textContent = state.score;
+            highScoreDisplay.textContent = Math.max(highScore, state.score);
+            levelBadge.textContent = `LVL ${state.level}`;
+
+            // Render Hearts
+            let heartsHTML = '';
+            for (let i = 0; i < state.maxLives; i++) {
+                if (i < state.lives) {
+                    heartsHTML += `<span class="inline-block heart-active">❤️</span>`;
+                } else {
+                    heartsHTML += `<span class="inline-block opacity-30 grayscale">🖤</span>`;
+                }
+            }
+            livesContainer.innerHTML = heartsHTML;
+
+            // Render Combo Multiplier Badge
+            const mult = getComboMultiplier();
+            if (mult > 1) {
+                comboBadge.classList.remove('hidden');
+                comboBadge.textContent = `COMBO x${mult} 🔥`;
+            } else {
+                comboBadge.classList.add('hidden');
+            }
+        }
+
+        function getComboMultiplier() {
+            if (state.combo >= 15) return 4;
+            if (state.combo >= 9) return 3;
+            if (state.combo >= 4) return 2;
+            return 1;
+        }
+
+        // --- Spawning Falling Items ---
+        function spawnItem() {
+            const cfg = DIFFICULTIES[currentDifficulty];
+            const margin = 44;
+            const x = margin + Math.random() * (viewWidth - margin * 2);
+
+            // Determine item type based on weighted probabilities
+            const roll = Math.random();
+            const obstacleChance = Math.min(cfg.obstacleRatio + (state.level - 1) * 0.025, 0.52);
+
+            let type = 'bamboo';
+            let radius = 22;
+            let speed = (165 + Math.random() * 65 + state.level * 18) * cfg.speedMult;
+
+            if (roll < obstacleChance) {
+                // Obstacle: Rock or Zig-Zag Bug
+                if (Math.random() < 0.55) {
+                    type = 'rock';
+                    radius = 23;
+                    speed *= 1.12;
+                } else {
+                    type = 'bug';
+                    radius = 20;
+                    speed *= 0.95;
+                }
+            } else if (roll < obstacleChance + 0.08) {
+                // Rare Golden Bamboo
+                type = 'golden';
+                radius = 24;
+                speed *= 1.18;
+            } else if (roll < obstacleChance + 0.12 && state.lives < state.maxLives) {
+                // Heart Dumpling when missing health
+                type = 'dumpling';
+                radius = 21;
+                speed *= 1.05;
+            }
+
+            items.push({
+                x,
+                y: -35,
+                baseX: x,
+                type,
+                radius,
+                speed,
+                angle: (Math.random() - 0.5) * 0.5,
+                spin: (Math.random() - 0.5) * 2.2,
+                wobblePhase: Math.random() * Math.PI * 2
+            });
+        }
+
+        // --- Particle & Floating Text Helpers ---
+        function createBurst(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+                const spd = 60 + Math.random() * 140;
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd - 30,
+                    radius: 3 + Math.random() * 4.5,
+                    color,
+                    alpha: 1,
+                    life: 0.45 + Math.random() * 0.25
+                });
+            }
+        }
+
+        function addFloatingText(x, y, text, color = '#14532d') {
+            floatingTexts.push({
+                x,
+                y,
+                text,
+                color,
+                alpha: 1,
+                vy: -65
+            });
+        }
+
+        // --- Main Physics & Logic Update ---
+        function update(dt, now) {
+            state.time += dt;
+
+            // Ambient drifting leaves update (runs even in menu)
+            ambientLeaves.forEach(leaf => {
+                leaf.x += leaf.vx * dt;
+                leaf.y += leaf.vy * dt;
+                leaf.angle += dt * 1.5;
+                if (leaf.y > viewHeight + 20) {
+                    leaf.y = -15;
+                    leaf.x = Math.random() * viewWidth;
+                }
+                if (leaf.x > viewWidth + 20) {
+                    leaf.x = -15;
+                }
+            });
+
+            if (state.status !== 'playing') return;
+
+            // Recharge Dash Stamina
+            panda.dashEnergy = Math.min(100, panda.dashEnergy + dt * 26);
+            dashBar.style.width = `${panda.dashEnergy}%`;
+
+            if (panda.dashTimer > 0) panda.dashTimer -= dt;
+            if (panda.happyTimer > 0) panda.happyTimer -= dt;
+            if (panda.hurtTimer > 0) panda.hurtTimer -= dt;
+            if (state.screenShake > 0) state.screenShake = Math.max(0, state.screenShake - dt * 25);
+
+            // Blinking animation timer
+            panda.blinkTimer -= dt;
+            if (panda.blinkTimer < -0.15) {
+                panda.blinkTimer = 2.5 + Math.random() * 3;
+            }
+
+            // Panda Horizontal Movement
+            const dashBoost = panda.dashTimer > 0 ? 2.15 : 1;
+            let moveDir = 0;
+            if (keys.left) moveDir -= 1;
+            if (keys.right) moveDir += 1;
+
+            if (moveDir !== 0) {
+                panda.targetX = null; // Keyboard overrides pointer target
+                panda.vx = moveDir * panda.speed * dashBoost;
+                panda.facing = moveDir;
+            } else if (panda.targetX !== null) {
+                const diff = panda.targetX - panda.x;
+                if (Math.abs(diff) > 6) {
+                    const dir = Math.sign(diff);
+                    panda.vx = Math.min(Math.abs(diff) * 12, panda.speed * dashBoost) * dir;
+                    panda.facing = dir;
+                } else {
+                    panda.vx = 0;
+                }
+            } else {
+                panda.vx *= 0.78;
+            }
+
+            panda.x += panda.vx * dt;
+            const halfW = panda.width * 0.48;
+            panda.x = Math.max(halfW, Math.min(viewWidth - halfW, panda.x));
+
+            if (Math.abs(panda.vx) > 25) {
+                panda.walkCycle += dt * 14 * dashBoost;
+            } else {
+                panda.walkCycle *= 0.85;
+            }
+
+            // Level Progression based on Score
+            const newLevel = 1 + Math.floor(state.score / 250);
+            if (newLevel > state.level) {
+                state.level = newLevel;
+                addFloatingText(viewWidth / 2, viewHeight / 2 - 40, `LEVEL ${state.level}!`, '#d97706');
+                sound.playBonus();
+                updateHUD();
+            }
+
+            // Spawn Items
+            const cfg = DIFFICULTIES[currentDifficulty];
+            const currentInterval = Math.max(310, cfg.spawnInterval - (state.level - 1) * 48);
+            if (now - state.lastSpawnTime >= currentInterval) {
+                spawnItem();
+                state.lastSpawnTime = now;
+            }
+
+            // Update Falling Items & Check Collisions
+            for (let i = items.length - 1; i >= 0; i--) {
+                const it = items[i];
+                it.y += it.speed * dt;
+                it.angle += it.spin * dt;
+
+                // Stinkbugs buzz in a horizontal sine wave
+                if (it.type === 'bug') {
+                    it.wobblePhase += dt * 5.5;
+                    it.x = it.baseX + Math.sin(it.wobblePhase) * 42;
+                    it.x = Math.max(28, Math.min(viewWidth - 28, it.x));
+                }
+
+                // Collision Check with Panda Catch Box
+                const dx = it.x - panda.x;
+                const dy = it.y - (panda.y - 8);
+                const dist = Math.hypot(dx, dy);
+                const hitThreshold = it.radius + 34;
+
+                if (dist < hitThreshold) {
+                    handleItemCollision(it);
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // Missed Item reaching ground
+                if (it.y > viewHeight + 35) {
+                    if (it.type === 'bamboo' && state.combo > 0) {
+                        state.combo = 0;
+                        updateHUD();
+                    }
+                    items.splice(i, 1);
+                }
+            }
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vy += 280 * dt; // Gravity
+                p.life -= dt;
+                p.alpha = Math.max(0, p.life * 2);
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Update Floating Score Popups
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y += ft.vy * dt;
+                ft.alpha -= dt * 1.15;
+                if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+            }
+        }
+
+        function handleItemCollision(item) {
+            if (item.type === 'bamboo' || item.type === 'golden') {
+                state.combo++;
+                state.bambooCaught++;
+                const mult = getComboMultiplier();
+                state.maxCombo = Math.max(state.maxCombo, mult);
+
+                const basePts = item.type === 'golden' ? 50 : 10;
+                const pts = basePts * mult;
+                state.score += pts;
+                panda.happyTimer = 0.45;
+
+                if (item.type === 'golden') {
+                    sound.playBonus();
+                    createBurst(item.x, item.y, '#facc15', 18);
+                    addFloatingText(item.x, item.y - 15, `+${pts} GOLDEN!`, '#ca8a04');
+                } else {
+                    sound.playCatch(state.combo);
+                    createBurst(item.x, item.y, '#4ade80', 10);
+                    addFloatingText(item.x, item.y - 10, `+${pts}`, '#15803d');
+                }
+                updateHUD();
+
+            } else if (item.type === 'dumpling') {
+                sound.playBonus();
+                panda.happyTimer = 0.55;
+                createBurst(item.x, item.y, '#fb7185', 16);
+
+                if (state.lives < state.maxLives) {
+                    state.lives++;
+                    addFloatingText(item.x, item.y - 12, '+1 LIFE ❤️', '#e11d48');
+                } else {
+                    state.score += 35;
+                    addFloatingText(item.x, item.y - 12, '+35 YUM!', '#e11d48');
+                }
+                updateHUD();
+
+            } else if (item.type === 'rock' || item.type === 'bug') {
+                // Obstacle Hit
+                sound.playHit();
+                state.lives--;
+                state.combo = 0;
+                panda.hurtTimer = 0.65;
+                state.screenShake = 8;
+
+                createBurst(item.x, item.y, item.type === 'rock' ? '#64748b' : '#ef4444', 15);
+                addFloatingText(item.x, item.y - 12, 'OUCH! -1 ❤️', '#dc2626');
+                updateHUD();
+
+                if (state.lives <= 0) {
+                    endGame();
+                }
+            }
+        }
+
+        // --- Canvas Drawing Functions ---
+        function drawScene() {
+            ctx.save();
+
+            // Apply Screen Shake when hurt
+            if (state.screenShake > 0) {
+                const dx = (Math.random() - 0.5) * state.screenShake * 2;
+                const dy = (Math.random() - 0.5) * state.screenShake * 2;
+                ctx.translate(dx, dy);
+            }
+
+            // 1. Sky & Soft Sunbeams
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, viewHeight);
+            skyGrad.addColorStop(0, '#a7f3d0');
+            skyGrad.addColorStop(0.7, '#ecfdf5');
+            skyGrad.addColorStop(1, '#bbf7d0');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, viewWidth, viewHeight);
+
+            // Soft Diagonal Sunlight Rays
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                const startX = viewWidth * (0.15 + i * 0.3);
+                ctx.moveTo(startX, 0);
+                ctx.lineTo(startX + 90, 0);
+                ctx.lineTo(startX + 240, viewHeight);
+                ctx.lineTo(startX + 110, viewHeight);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // 2. Parallax Bamboo Forest Stalks
+            backgroundStalks.forEach(stalk => {
+                const sway = Math.sin(state.time * 1.2 + stalk.swayOffset) * 5;
+                ctx.save();
+                ctx.strokeStyle = stalk.layer === 0 ? 'rgba(22, 101, 52, 0.16)' : 'rgba(21, 128, 61, 0.28)';
+                ctx.lineWidth = stalk.width;
+                ctx.lineCap = 'butt';
+
+                ctx.beginPath();
+                ctx.moveTo(stalk.x, viewHeight);
+                ctx.quadraticCurveTo(stalk.x + sway * 0.5, viewHeight * 0.5, stalk.x + sway, 0);
+                ctx.stroke();
+
+                // Bamboo segment rings
+                ctx.strokeStyle = stalk.layer === 0 ? 'rgba(255,255,255,0.22)' : 'rgba(220, 252, 231, 0.45)';
+                ctx.lineWidth = 2;
+                for (let y = viewHeight - stalk.nodeHeight; y > 0; y -= stalk.nodeHeight) {
+                    const progress = 1 - y / viewHeight;
+                    const curX = stalk.x + sway * progress;
+                    ctx.beginPath();
+                    ctx.moveTo(curX - stalk.width * 0.55, y);
+                    ctx.lineTo(curX + stalk.width * 0.55, y);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            });
+
+            // 3. Ambient Drifting Leaves
+            ambientLeaves.forEach(leaf => {
+                ctx.save();
+                ctx.translate(leaf.x, leaf.y);
+                ctx.rotate(leaf.angle);
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.45)';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, leaf.size, leaf.size * 0.42, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // 4. Rolling Meadow Ground
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.moveTo(0, viewHeight - 36);
+            ctx.quadraticCurveTo(viewWidth * 0.5, viewHeight - 54, viewWidth, viewHeight - 36);
+            ctx.lineTo(viewWidth, viewHeight);
+            ctx.lineTo(0, viewHeight);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(0, viewHeight - 14, viewWidth, 14);
+
+            // 5. Draw Falling Items
+            items.forEach(item => drawItem(item));
+
+            // 6. Draw Cute Animated Panda
+            drawPanda();
+
+            // 7. Draw Particles
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // 8. Draw Floating Score Texts
+            floatingTexts.forEach(ft => {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, ft.alpha);
+                ctx.font = 'bold 20px "Fredoka", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#ffffff';
+                ctx.strokeText(ft.text, ft.x, ft.y);
+                ctx.fillStyle = ft.color;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            });
+
+            ctx.restore();
+        }
+
+        function drawItem(item) {
+            ctx.save();
+            ctx.translate(item.x, item.y);
+            ctx.rotate(item.angle);
+
+            if (item.type === 'bamboo' || item.type === 'golden') {
+                const isGold = item.type === 'golden';
+
+                // Glow for golden bamboo
+                if (isGold) {
+                    ctx.shadowColor = '#facc15';
+                    ctx.shadowBlur = 14;
+                }
+
+                // Stalk body
+                ctx.fillStyle = isGold ? '#facc15' : '#22c55e';
+                ctx.strokeStyle = isGold ? '#854d0e' : '#14532d';
+                ctx.lineWidth = 3;
+
+                ctx.beginPath();
+                ctx.roundRect(-9, -22, 18, 44, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                // Segment joints
+                ctx.beginPath();
+                ctx.moveTo(-10, -7);
+                ctx.lineTo(10, -7);
+                ctx.moveTo(-10, 8);
+                ctx.lineTo(10, 8);
+                ctx.stroke();
+
+                // Cute side sprout leaves
+                ctx.fillStyle = isGold ? '#fde047' : '#4ade80';
+                ctx.beginPath();
+                ctx.ellipse(13, -10, 9, 4.5, -0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(-13, 5, 8, 4, 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+            } else if (item.type === 'dumpling') {
+                // Cute Heart Bun / Dumpling
+                ctx.fillStyle = '#fff1f2';
+                ctx.strokeStyle = '#881337';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 3, 18, Math.PI, 0, false);
+                ctx.bezierCurveTo(18, 15, 10, 18, 0, 18);
+                ctx.bezierCurveTo(-10, 18, -18, 15, -18, 3);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Little pink heart stamp on dumpling
+                ctx.fillStyle = '#f43f5e';
+                ctx.beginPath();
+                ctx.arc(-3.5, 2, 4, 0, Math.PI * 2);
+                ctx.arc(3.5, 2, 4, 0, Math.PI * 2);
+                ctx.moveTo(-7, 4);
+                ctx.lineTo(0, 11);
+                ctx.lineTo(7, 4);
+                ctx.fill();
+
+            } else if (item.type === 'rock') {
+                // Jagged Falling Boulder
+                ctx.fillStyle = '#64748b';
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-18, -8);
+                ctx.lineTo(-6, -20);
+                ctx.lineTo(12, -17);
+                ctx.lineTo(21, -3);
+                ctx.lineTo(15, 16);
+                ctx.lineTo(-8, 19);
+                ctx.lineTo(-21, 8);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Highlight facet
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.moveTo(-6, -14);
+                ctx.lineTo(8, -12);
+                ctx.lineTo(4, -2);
+                ctx.lineTo(-10, -4);
+                ctx.closePath();
+                ctx.fill();
+
+            } else if (item.type === 'bug') {
+                // Buzzing Spiky Wasp / Stinkbug
+                const wingFlap = Math.sin(state.time * 38) * 6;
+
+                // Wings
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.ellipse(-12, -8 + wingFlap * 0.4, 11, 6, -0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.ellipse(12, -8 - wingFlap * 0.4, 11, 6, 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Body
+                ctx.fillStyle = '#ef4444';
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(0, 2, 14, 16, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Warning stripes & angry eyes
+                ctx.fillStyle = '#facc15';
+                ctx.fillRect(-10, -2, 20, 5);
+                ctx.fillRect(-8, 6, 16, 4);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-5, -7, 3, 0, Math.PI * 2);
+                ctx.arc(5, -7, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function drawPanda() {
+            ctx.save();
+            ctx.translate(panda.x, panda.y);
+
+            // Slight tilt & bounce while moving
+            const tilt = Math.sin(panda.walkCycle) * 0.08;
+            const bounce = Math.abs(Math.sin(panda.walkCycle)) * 4;
+            ctx.translate(0, -bounce);
+            ctx.rotate(tilt);
+
+            // Flash effect if hurt
+            if (panda.hurtTimer > 0 && Math.floor(panda.hurtTimer * 16) % 2 === 0) {
+                ctx.globalAlpha = 0.6;
+            }
+
+            // Ground Shadow
+            ctx.fillStyle = 'rgba(20, 83, 45, 0.22)';
+            ctx.beginPath();
+            ctx.ellipse(0, 36 + bounce, 36, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Feet (Waddling)
+            const leftFootY = 26 + Math.sin(panda.walkCycle) * 4;
+            const rightFootY = 26 - Math.sin(panda.walkCycle) * 4;
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.ellipse(-18, leftFootY, 12, 8, -0.2, 0, Math.PI * 2);
+            ctx.ellipse(18, rightFootY, 12, 8, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Chubby Torso
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.ellipse(0, 10, 30, 24, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Black Shoulder Band & Arms holding a tiny bamboo basket rim
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.ellipse(-26, 4, 10, 15, 0.4, 0, Math.PI * 2);
+            ctx.ellipse(26, 4, 10, 15, -0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Round Ears
+            const earWiggle = panda.happyTimer > 0 ? Math.sin(state.time * 28) * 3 : 0;
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(-23, -36 + earWiggle, 11, 0, Math.PI * 2);
+            ctx.arc(23, -36 - earWiggle, 11, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.ellipse(0, -16, 30, 25, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Red Ninja Headband when Combo >= 4
+            if (state.combo >= 4) {
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.roundRect(-28, -33, 56, 7, 3);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Rosy Cheeks
+            ctx.fillStyle = '#fda4af';
+            ctx.beginPath();
+            ctx.ellipse(-18, -10, 5.5, 3.2, 0, 0, Math.PI * 2);
+            ctx.ellipse(18, -10, 5.5, 3.2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Classic Panda Eye Patches
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.ellipse(-11, -19, 7.5, 9.5, -0.2, 0, Math.PI * 2);
+            ctx.ellipse(11, -19, 7.5, 9.5, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Expressive Eyes (Hurt, Happy, Blinking, or Normal)
+            ctx.strokeStyle = '#ffffff';
+            ctx.fillStyle = '#ffffff';
+            ctx.lineWidth = 2.5;
+
+            if (panda.hurtTimer > 0) {
+                // > < Dizzy Eyes
+                ctx.beginPath();
+                ctx.moveTo(-14, -22); ctx.lineTo(-9, -19); ctx.lineTo(-14, -16);
+                ctx.moveTo(14, -22); ctx.lineTo(9, -19); ctx.lineTo(14, -16);
+                ctx.stroke();
+            } else if (panda.happyTimer > 0) {
+                // ^ ^ Happy Eating Eyes
+                ctx.beginPath();
+                ctx.arc(-11, -18, 4, Math.PI, 0, false);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(11, -18, 4, Math.PI, 0, false);
+                ctx.stroke();
+            } else if (panda.blinkTimer < 0) {
+                // - - Blink
+                ctx.beginPath();
+                ctx.moveTo(-14, -19); ctx.lineTo(-8, -19);
+                ctx.moveTo(8, -19); ctx.lineTo(14, -19);
+                ctx.stroke();
+            } else {
+                // Bright Pupils
+                ctx.beginPath();
+                ctx.arc(-10, -20, 3, 0, Math.PI * 2);
+                ctx.arc(10, -20, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Cute Nose & Mouth
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.ellipse(0, -12, 4.5, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            if (panda.happyTimer > 0) {
+                // Open happy mouth
+                ctx.fillStyle = '#fb7185';
+                ctx.beginPath();
+                ctx.arc(0, -8, 5, 0, Math.PI, false);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.arc(-3, -8, 3, 0, Math.PI * 0.85, false);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(3, -8, 3, Math.PI * 0.15, Math.PI, false);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        // --- Input Event Listeners (Keyboard, Mouse, Touch, On-Screen Buttons) ---
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                keys.left = true;
+                document.getElementById('btnLeft').classList.add('active-press');
+            }
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                keys.right = true;
+                document.getElementById('btnRight').classList.add('active-press');
+            }
+            if (e.key === ' ' || e.key === 'Shift') {
+                if (state.status === 'playing') {
+                    e.preventDefault();
+                    triggerDash();
+                }
+            }
+            if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+                if (state.status === 'playing' || state.status === 'paused') {
+                    togglePause();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                keys.left = false;
+                document.getElementById('btnLeft').classList.remove('active-press');
+            }
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                keys.right = false;
+                document.getElementById('btnRight').classList.remove('active-press');
+            }
+        });
+
+        // Pointer / Touch Drag Directly on Canvas
+        function handleCanvasPointer(clientX) {
+            if (state.status !== 'playing') return;
+            const rect = canvas.getBoundingClientRect();
+            const relX = clientX - rect.left;
+            panda.targetX = Math.max(panda.width / 2, Math.min(viewWidth - panda.width / 2, relX));
+        }
+
+        let isPointerDown = false;
+        canvas.addEventListener('mousedown', (e) => {
+            isPointerDown = true;
+            handleCanvasPointer(e.clientX);
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (isPointerDown) handleCanvasPointer(e.clientX);
+        });
+        window.addEventListener('mouseup', () => {
+            isPointerDown = false;
+            panda.targetX = null;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                handleCanvasPointer(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                handleCanvasPointer(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', () => {
+            panda.targetX = null;
+        });
+
+        // External Arcade Buttons (Bottom Row)
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+        const btnDash = document.getElementById('btnDash');
+
+        function bindHoldButton(btn, keyName) {
+            const start = (e) => {
+                e.preventDefault();
+                keys[keyName] = true;
+                btn.classList.add('active-press');
+            };
+            const end = (e) => {
+                e.preventDefault();
+                keys[keyName] = false;
+                btn.classList.remove('active-press');
+            };
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', end);
+            btn.addEventListener('mouseleave', end);
+            btn.addEventListener('touchstart', start, { passive: false });
+            btn.addEventListener('touchend', end, { passive: false });
+        }
+
+        bindHoldButton(btnLeft, 'left');
+        bindHoldButton(btnRight, 'right');
+
+        btnDash.addEventListener('click', () => triggerDash());
+        btnDash.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            triggerDash();
+        }, { passive: false });
+
+        // Top Bar Buttons & Modal Buttons
+        primaryModalBtn.addEventListener('click', () => {
+            if (state.status === 'paused') {
+                togglePause();
+            } else {
+                startGame();
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            if (state.status === 'playing' || state.status === 'paused') {
+                togglePause();
+            }
+        });
+
+        restartTopBtn.addEventListener('click', () => {
+            startGame();
+        });
+
+        soundBtn.addEventListener('click', () => {
+            const isMuted = sound.toggleMute();
+            soundIcon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+            soundBtn.classList.toggle('bg-slate-500', isMuted);
+            soundBtn.classList.toggle('bg-emerald-500', !isMuted);
+        });
+
+        // Difficulty Selector Buttons
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentDifficulty = btn.dataset.diff;
+                document.querySelectorAll('.diff-btn').forEach(b => {
+                    b.className = 'diff-btn px-3 py-1.5 rounded-xl font-display text-xs sm:text-sm border-2 border-emerald-900 bg-emerald-100 text-emerald-900';
+                });
+                btn.className = 'diff-btn px-3 py-1.5 rounded-xl font-display text-xs sm:text-sm border-2 border-emerald-900 bg-emerald-600 text-white shadow';
+            });
+        });
+
+        // --- Main Animation Loop ---
+        let lastFrameTime = performance.now();
+
+        function gameLoop(now) {
+            const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
+            lastFrameTime = now;
+
+            update(dt, now);
+            drawScene();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        window.onload = function () {
+            resizeCanvas();
+            updateHUD();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
